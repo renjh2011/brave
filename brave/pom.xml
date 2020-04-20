@@ -44,7 +44,7 @@
     <!-- For Tracing.Builder.spanReporter -->
     <dependency>
       <groupId>io.zipkin.reporter2</groupId>
-      <artifactId>zipkin-reporter</artifactId>
+      <artifactId>zipkin-reporter-brave</artifactId>
       <version>${zipkin-reporter.version}</version>
       <optional>true</optional>
     </dependency>

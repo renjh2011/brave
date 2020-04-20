@@ -12,21 +12,23 @@ http headers.
 
 ## Setup
 
-Most importantly, you need a Tracer, configured to [report to Zipkin](https://github.com/openzipkin/zipkin-reporter-java).
+Most importantly, you need a Tracer, usually configured to [report to Zipkin](https://github.com/openzipkin/zipkin-reporter-java).
 
 Here's an example setup that sends trace data (spans) to Zipkin over
-http (as opposed to Kafka).
+HTTP (as opposed to Kafka).
 
 ```java
 // Configure a reporter, which controls how often spans are sent
-//   (the dependency is io.zipkin.reporter2:zipkin-sender-okhttp3)
+//   (this dependency is io.zipkin.reporter2:zipkin-sender-okhttp3)
 sender = OkHttpSender.create("http://127.0.0.1:9411/api/v2/spans");
 spanReporter = AsyncReporter.create(sender);
+//   (this dependency is io.zipkin.reporter2:zipkin-reporter-brave)
+zipkinHandler = ZipkinFinishedSpanHandler.create(reporter)
 
 // Create a tracing component with the service name you want to see in Zipkin.
 tracing = Tracing.newBuilder()
                  .localServiceName("my-service")
-                 .spanReporter(spanReporter)
+                 .addFinishedSpanHandler(ZipkinSpanHandler.create(reporter))
                  .build();
 
 // Tracing exposes objects you might need, most importantly the tracer

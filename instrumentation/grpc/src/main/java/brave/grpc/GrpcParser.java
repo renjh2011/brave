@@ -15,7 +15,6 @@ package brave.grpc;
 
 import brave.ErrorParser;
 import brave.SpanCustomizer;
-import brave.Tracing;
 import brave.internal.Nullable;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
@@ -23,23 +22,11 @@ import io.grpc.Status;
 
 public class GrpcParser {
   /**
-   * Override when making custom types. Typically, you'll use {@link Tracing#errorParser()}
-   *
-   * <pre>{@code
-   * class MyGrpcParser extends GrpcParser {
-   *   ErrorParser errorParser;
-   *
-   *   MyGrpcParser(Tracing tracing) {
-   *     errorParser = tracing.errorParser();
-   *   }
-   *
-   *   protected ErrorParser errorParser() {
-   *     return errorParser;
-   *   }
-   * --snip--
-   * }</pre>
+   * @deprecated This is only used in Zipkin reporting. Since 5.12, use {@link
+   * zipkin2.reporter.brave.ZipkinSpanHandler.Builder#errorParser(ErrorParser)}
    */
-  protected ErrorParser errorParser() {
+  // TODO: We've never used this method, and this type will be deprecated after #999
+  @Deprecated protected ErrorParser errorParser() {
     return ErrorParser.get();
   }
 
