@@ -20,8 +20,10 @@ import brave.propagation.TraceContext;
 import brave.rpc.RpcRuleSampler;
 import brave.rpc.RpcTracing;
 import brave.test.util.AssertableCallback;
+import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+import org.apache.dubbo.rpc.Filter;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 import org.junit.After;
@@ -240,6 +242,25 @@ public class ITTracingFilter_Consumer extends ITTracingFilter {
 
     Span span =
       reporter.takeRemoteSpanWithError(Span.Kind.CLIENT, ".*Not found exported service.*");
-    assertThat(span.tags().get("dubbo.error_code")).isEqualTo("NETWORK_EXCEPTION");
+    assertThat(span.tags())
+      .containsEntry("rpc.error_code", "NETWORK_EXCEPTION");
+  }
+
+  /** Shows if you aren't using RpcTracing, the old "dubbo.error_code" works */
+  @Test public void addsErrorTag_onUnimplemented_legacy() {
+    ((TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
+      .getExtension("tracing")).isInit = false;
+
+    ((TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
+      .getExtension("tracing"))
+      .setTracing(tracing);
+
+    assertThatThrownBy(() -> wrongClient.get().sayHello("jorge"))
+      .isInstanceOf(RpcException.class);
+
+    Span span =
+      reporter.takeRemoteSpanWithError(Span.Kind.CLIENT, ".*Not found exported service.*");
+    assertThat(span.tags())
+      .containsEntry("dubbo.error_code", "NETWORK_EXCEPTION");
   }
 }
