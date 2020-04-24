@@ -14,6 +14,7 @@
 package brave.rpc;
 
 import brave.Span;
+import brave.SpanCustomizer;
 import brave.Tracer;
 import brave.internal.Nullable;
 import brave.propagation.TraceContext;
@@ -57,21 +58,19 @@ import brave.sampler.SamplerFunction;
  */
 public final class RpcClientHandler extends RpcHandler<RpcClientRequest, RpcClientResponse> {
   /** @since 5.12 */
-  public static RpcClientHandler create(RpcTracing rpcTracing,
-    Injector<RpcClientRequest> injector) {
+  public static RpcClientHandler create(RpcTracing rpcTracing) {
     if (rpcTracing == null) throw new NullPointerException("rpcTracing == null");
-    if (injector == null) throw new NullPointerException("injector == null");
-    return new RpcClientHandler(rpcTracing, injector);
+    return new RpcClientHandler(rpcTracing);
   }
 
   final Tracer tracer;
-  final Injector<RpcClientRequest> injector;
   final SamplerFunction<RpcRequest> sampler;
+  final Injector<RpcClientRequest> injector;
 
-  RpcClientHandler(RpcTracing rpcTracing, Injector<RpcClientRequest> injector) {
+  RpcClientHandler(RpcTracing rpcTracing) {
     super(rpcTracing.clientRequestParser(), rpcTracing.clientResponseParser());
     this.tracer = rpcTracing.tracing().tracer();
-    this.injector = injector;
+    this.injector = rpcTracing.tracing.propagation().injector(RpcClientRequest.SETTER);
     this.sampler = rpcTracing.clientSampler();
   }
 
@@ -119,24 +118,20 @@ public final class RpcClientHandler extends RpcHandler<RpcClientRequest, RpcClie
     return handleStart(request, span);
   }
 
-  @Override void parseResponse(RpcClientResponse response, Span span) {
-    if (response != null) response.parseRemoteIpAndPort(span);
-    super.parseResponse(response, span);
-  }
-
   /**
    * Finishes the client span after assigning it tags according to the response or error.
    *
    * <p>This is typically called once the response headers are received, and after the span is
    * {@link Tracer.SpanInScope#close() no longer in scope}.
    *
-   * <p>Note: Either the response or error parameters may be null, but not both.
+   * <p><em>Note</em>: It is valid to have a {@link RpcClientResponse} that only includes an
+   * {@linkplain RpcClientResponse#error() error}. However, it is better to also include the
+   * {@linkplain RpcClientResponse#request() request}.
    *
-   * @see RpcTracing#clientResponseParser()
+   * @see RpcResponseParser#parse(RpcResponse, TraceContext, SpanCustomizer)
    * @since 5.12
    */
-  public void handleReceive(
-    @Nullable RpcClientResponse response, @Nullable Throwable error, Span span) {
-    handleFinish(response, error, span);
+  public void handleReceive(RpcClientResponse response, Span span) {
+    handleFinish(response, span);
   }
 }

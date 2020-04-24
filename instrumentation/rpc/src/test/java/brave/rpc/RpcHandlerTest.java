@@ -23,10 +23,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -36,10 +35,12 @@ public class RpcHandlerTest {
   @Mock SpanCustomizer spanCustomizer;
   @Mock RpcRequest request;
   @Mock RpcResponse response;
+  @Mock RpcRequestParser requestParser;
+  @Mock RpcResponseParser responseParser;
   RpcHandler handler;
 
   @Before public void init() {
-    handler = new RpcHandler(RpcRequestParser.DEFAULT, RpcResponseParser.DEFAULT) {
+    handler = new RpcHandler(requestParser, responseParser) {
     };
     when(span.context()).thenReturn(context);
     when(span.customizer()).thenReturn(spanCustomizer);
@@ -56,14 +57,10 @@ public class RpcHandlerTest {
   @Test public void handleStart_parsesTagsWithCustomizer() {
     when(span.isNoop()).thenReturn(false);
     when(request.spanKind()).thenReturn(Span.Kind.SERVER);
-    when(request.method()).thenReturn("Report");
 
     handler.handleStart(request, span);
 
-    verify(span).kind(Span.Kind.SERVER);
-    verify(spanCustomizer).name("Report");
-    verify(spanCustomizer).tag("rpc.method", "Report");
-    verifyNoMoreInteractions(spanCustomizer);
+    verify(requestParser).parse(request, context, spanCustomizer);
   }
 
   @Test public void handleStart_addsRemoteEndpointWhenParsed() {
@@ -78,49 +75,46 @@ public class RpcHandlerTest {
     verify(span).remoteIpAndPort("1.2.3.4", 0);
   }
 
-  @Test public void handleFinish_nothingOnNoop_success() {
-    when(span.isNoop()).thenReturn(true);
+  @Test public void handleStart_startedEvenIfParsingThrows() {
+    when(span.isNoop()).thenReturn(false);
+    doThrow(new RuntimeException()).when(requestParser).parse(request, context, spanCustomizer);
 
-    handler.handleFinish(response, null, span);
+    handler.handleStart(request, span);
 
-    verify(span, never()).finish();
+    verify(span).start();
   }
 
-  @Test public void handleFinish_nothingOnNoop_error() {
+  @Test public void handleFinish_nothingOnNoop() {
     when(span.isNoop()).thenReturn(true);
 
-    handler.handleFinish(null, new RuntimeException("drat"), span);
+    handler.handleFinish(response, span);
 
     verify(span, never()).finish();
   }
 
   @Test public void handleFinish_parsesTagsWithCustomizer() {
-    when(response.errorCode()).thenReturn("CANCELLED");
     when(span.customizer()).thenReturn(spanCustomizer);
 
-    handler.handleFinish(response, null, span);
+    handler.handleFinish(response, span);
 
-    verify(spanCustomizer).tag("error", "CANCELLED");
-    verifyNoMoreInteractions(spanCustomizer);
+    verify(responseParser).parse(response, context, spanCustomizer);
   }
 
   /** Allows {@link FinishedSpanHandler} to see the error regardless of parsing. */
   @Test public void handleFinish_errorRecordedInSpan() {
     RuntimeException error = new RuntimeException("foo");
-    when(response.errorCode()).thenReturn("CANCELLED");
-    when(span.customizer()).thenReturn(spanCustomizer);
+    when(response.error()).thenReturn(error);
 
-    handler.handleFinish(response, error, span);
+    handler.handleFinish(response, span);
 
-    verify(spanCustomizer).tag("error", "CANCELLED");
     verify(span).error(error);
   }
 
-  @Test public void handleFinish_finishedEvenIfAdapterThrows() {
-    when(response.errorCode()).thenThrow(new RuntimeException());
+  @Test public void handleFinish_finishedEvenIfParsingThrows() {
+    when(span.isNoop()).thenReturn(false);
+    doThrow(new RuntimeException()).when(responseParser).parse(response, context, spanCustomizer);
 
-    assertThatThrownBy(() -> handler.handleFinish(response, null, span))
-      .isInstanceOf(RuntimeException.class);
+    handler.handleFinish(response, span);
 
     verify(span).finish();
   }

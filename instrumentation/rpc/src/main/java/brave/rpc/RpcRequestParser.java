@@ -14,7 +14,6 @@
 package brave.rpc;
 
 import brave.SpanCustomizer;
-import brave.internal.Nullable;
 import brave.propagation.TraceContext;
 
 /**
@@ -25,8 +24,8 @@ import brave.propagation.TraceContext;
  * <pre>{@code
  * rpcTracing = rpcTracing.toBuilder()
  *   .clientRequestParser((req, context, span) -> {
- *     String method = req.method();
- *     if (method != null) span.name(method);
+ *      String method = req.method();
+ *      if (method != null) span.name(method);
  *   }).build();
  * }</pre>
  *
@@ -44,34 +43,21 @@ public interface RpcRequestParser {
   void parse(RpcRequest request, TraceContext context, SpanCustomizer span);
 
   /**
-   * The default data policy sets the span name to the RPC method and adds the "rpc.method" and
-   * "rpc.path" tags.
+   * The default data policy sets the span name to {@code ${rpc.service}/${rpc.method}} or only the
+   * method or service. This also tags "rpc.service" and "rpc.method" when present.
    */
-  // Eventhough the default span name is the method, we have no way of knowing that a user hasn't
-  // overwritten the name to something else. If that occurs during response parsing, it is too late
-  // to go back and get the rpc method. Adding rpc method by default ensures span naming doesn't
-  // prevent basic RPC info from being visible. A cost of this is another tag, but it is small with
-  // very limited cardinality. Moreover, users who care strictly about size can override this.
   class Default implements RpcRequestParser {
-    /**
-     * This sets the span name to the RPC method and adds the "rpc.method" and "rpc.service" tags.
-     *
-     * <p>If you only want to change the span name, subclass and override {@link
-     * #spanName(RpcRequest, TraceContext)}.
-     */
     @Override public void parse(RpcRequest req, TraceContext context, SpanCustomizer span) {
-      String name = spanName(req, context);
-      if (name != null) span.name(name);
-      RpcTags.METHOD.tag(req, context, span);
-      RpcTags.SERVICE.tag(req, context, span);
-    }
-
-    /**
-     * Returns the span name of the request or null if the data needed is unavailable. Defaults to
-     * the rpc method.
-     */
-    @Nullable protected String spanName(RpcRequest req, TraceContext context) {
-      return req.method();
+      String service = RpcTags.SERVICE.tag(req, context, span);
+      String method = RpcTags.METHOD.tag(req, context, span);
+      if (service == null && method == null) return;
+      if (service == null) {
+        span.name(method);
+      } else if (method == null) {
+        span.name(service);
+      } else {
+        span.name(service + "/" + method);
+      }
     }
   }
 }

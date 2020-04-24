@@ -14,6 +14,7 @@
 package brave.rpc;
 
 import brave.Clock;
+import brave.Response;
 import brave.Span;
 import brave.Tags;
 import brave.internal.Nullable;
@@ -24,20 +25,17 @@ import brave.propagation.TraceContext;
  *
  * @see RpcClientResponse
  * @see RpcServerResponse
- * @since 5.10
+ * @since 5.12
  */
-abstract class RpcResponse {
+public abstract class RpcResponse extends Response {
   /**
-   * Returns the underlying RPC response object. Ex. {@code org.apache.dubbo.rpc.Result}
+   * The request that initiated this RPC response or {@code null} if unknown.
    *
-   * <p>Note: Some implementations are composed of multiple types, such as a result and a context
-   * object. Moreover, an implementation may change the type returned due to refactoring. Unless you
-   * control the implementation, cast carefully (ex using {@code instance of}) instead of presuming
-   * a specific type will always be returned.
-   *
-   * @since 5.10
+   * @since 5.12
    */
-  public abstract Object unwrap();
+  @Override @Nullable public RpcRequest request() {
+    return null;
+  }
 
   /**
    * Returns the shortest human readable error code name. Ex. {code io.grpc.Status.Code.name()} may
@@ -55,7 +53,7 @@ abstract class RpcResponse {
    *
    * <p>When an error code has both a numeric and text label, return the text.
    *
-   * @since 5.10
+   * @since 5.12
    */
   @Nullable public abstract String errorCode();
 
@@ -75,16 +73,9 @@ abstract class RpcResponse {
    * @see RpcRequest#startTimestamp()
    * @see brave.Span#finish(long)
    * @see brave.Tracing#clock(TraceContext)
-   * @since 5.10
+   * @since 5.12
    */
   public long finishTimestamp() {
     return 0L;
-  }
-
-  @Override public String toString() {
-    Object unwrapped = unwrap();
-    // unwrap() returning null is a bug. It could also return this. don't NPE or stack overflow!
-    if (unwrapped == null || unwrapped == this) return getClass().getSimpleName();
-    return getClass().getSimpleName() + "{" + unwrapped + "}";
   }
 }

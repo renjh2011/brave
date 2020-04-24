@@ -16,7 +16,6 @@ package brave.rpc;
 import brave.Span;
 import brave.SpanCustomizer;
 import brave.Tracer;
-import brave.internal.Nullable;
 import brave.propagation.TraceContext;
 import brave.propagation.TraceContext.Extractor;
 import brave.propagation.TraceContextOrSamplingFlags;
@@ -58,21 +57,19 @@ import brave.sampler.SamplerFunction;
  */
 public final class RpcServerHandler extends RpcHandler<RpcServerRequest, RpcServerResponse> {
   /** @since 5.12 */
-  public static RpcServerHandler create(RpcTracing rpcTracing,
-    Extractor<RpcServerRequest> extractor) {
+  public static RpcServerHandler create(RpcTracing rpcTracing) {
     if (rpcTracing == null) throw new NullPointerException("rpcTracing == null");
-    if (extractor == null) throw new NullPointerException("extractor == null");
-    return new RpcServerHandler(rpcTracing, extractor);
+    return new RpcServerHandler(rpcTracing);
   }
 
   final Tracer tracer;
   final Extractor<RpcServerRequest> extractor;
   final SamplerFunction<RpcRequest> sampler;
 
-  RpcServerHandler(RpcTracing rpcTracing, Extractor<RpcServerRequest> extractor) {
+  RpcServerHandler(RpcTracing rpcTracing) {
     super(rpcTracing.serverRequestParser(), rpcTracing.serverResponseParser());
     this.tracer = rpcTracing.tracing().tracer();
-    this.extractor = extractor;
+    this.extractor = rpcTracing.tracing().propagation().extractor(RpcServerRequest.GETTER);
     this.sampler = rpcTracing.serverSampler();
   }
 
@@ -82,6 +79,8 @@ public final class RpcServerHandler extends RpcHandler<RpcServerRequest, RpcServ
    *
    * <p>This is typically called before the request is processed by the actual library.
    *
+   * @see RpcTracing#serverSampler()
+   * @see RpcTracing#serverRequestParser()
    * @since 5.12
    */
   public Span handleReceive(RpcServerRequest request) {
@@ -107,11 +106,14 @@ public final class RpcServerHandler extends RpcHandler<RpcServerRequest, RpcServ
    * <p>This is typically called once the response headers are sent, and after the span is {@link
    * brave.Tracer.SpanInScope#close() no longer in scope}.
    *
+   * <p><em>Note</em>: It is valid to have a {@link RpcServerResponse} that only includes an
+   * {@linkplain RpcServerResponse#error() error}. However, it is better to also include the
+   * {@linkplain RpcServerResponse#request() request}.
+   *
    * @see RpcResponseParser#parse(RpcResponse, TraceContext, SpanCustomizer)
    * @since 5.12
    */
-  public void handleSend(
-    @Nullable RpcServerResponse response, @Nullable Throwable error, Span span) {
-    handleFinish(response, error, span);
+  public void handleSend(RpcServerResponse response, Span span) {
+    handleFinish(response, span);
   }
 }

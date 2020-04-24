@@ -16,8 +16,6 @@ package brave.rpc;
 import brave.Span;
 import brave.Tracing;
 import brave.propagation.TraceContext;
-import brave.propagation.TraceContext.Extractor;
-import brave.propagation.TraceContextOrSamplingFlags;
 import brave.sampler.Sampler;
 import brave.sampler.SamplerFunction;
 import brave.sampler.SamplerFunctions;
@@ -44,26 +42,24 @@ public class RpcServerHandlerTest {
   List<zipkin2.Span> spans = new ArrayList<>();
   TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(1L).sampled(true).build();
 
-  RpcTracing rpcTracing;
+  RpcTracing httpTracing;
   RpcServerHandler handler;
 
-  @Mock Extractor<RpcServerRequest> extractor;
   @Mock(answer = CALLS_REAL_METHODS) RpcServerRequest request;
   @Mock(answer = CALLS_REAL_METHODS) RpcServerResponse response;
 
   @Before public void init() {
-    init(rpcTracingBuilder(tracingBuilder()));
+    init(httpTracingBuilder(tracingBuilder()));
   }
 
   void init(RpcTracing.Builder builder) {
     close();
-    rpcTracing = builder.build();
-    handler = RpcServerHandler.create(rpcTracing, extractor);
-    when(request.service()).thenReturn("zipkin.proto3.SpanService");
+    httpTracing = builder.build();
+    handler = RpcServerHandler.create(httpTracing);
     when(request.method()).thenReturn("Report");
   }
 
-  RpcTracing.Builder rpcTracingBuilder(Tracing.Builder tracingBuilder) {
+  RpcTracing.Builder httpTracingBuilder(Tracing.Builder tracingBuilder) {
     return RpcTracing.newBuilder(tracingBuilder.build());
   }
 
@@ -77,10 +73,9 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void handleReceive_traceIdSamplerSpecialCased() {
-    when(extractor.extract(request)).thenReturn(TraceContextOrSamplingFlags.EMPTY);
     Sampler sampler = mock(Sampler.class);
 
-    init(rpcTracingBuilder(tracingBuilder().sampler(sampler))
+    init(httpTracingBuilder(tracingBuilder().sampler(sampler))
       .serverSampler(SamplerFunctions.deferDecision()));
 
     assertThat(handler.handleReceive(request).isNoop()).isTrue();
@@ -89,10 +84,9 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void handleReceive_neverSamplerSpecialCased() {
-    when(extractor.extract(request)).thenReturn(TraceContextOrSamplingFlags.EMPTY);
     Sampler sampler = mock(Sampler.class);
 
-    init(rpcTracingBuilder(tracingBuilder().sampler(sampler))
+    init(httpTracingBuilder(tracingBuilder().sampler(sampler))
       .serverSampler(SamplerFunctions.neverSample()));
 
     assertThat(handler.handleReceive(request).isNoop()).isTrue();
@@ -101,9 +95,8 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void handleReceive_samplerSeesRpcServerRequest() {
-    when(extractor.extract(request)).thenReturn(TraceContextOrSamplingFlags.EMPTY);
     SamplerFunction<RpcRequest> serverSampler = mock(SamplerFunction.class);
-    init(rpcTracingBuilder(tracingBuilder()).serverSampler(serverSampler));
+    init(httpTracingBuilder(tracingBuilder()).serverSampler(serverSampler));
 
     handler.handleReceive(request);
 
@@ -111,22 +104,21 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void externalTimestamps() {
-    when(extractor.extract(request)).thenReturn(TraceContextOrSamplingFlags.EMPTY);
     when(request.startTimestamp()).thenReturn(123000L);
     when(response.finishTimestamp()).thenReturn(124000L);
 
     Span span = handler.handleReceive(request);
-    handler.handleSend(response, null, span);
+    handler.handleSend(response, span);
 
     assertThat(spans.get(0).durationAsLong()).isEqualTo(1000L);
   }
 
   @Test public void handleSend_finishesSpanEvenIfUnwrappedNull() {
-    Span span = mock(Span.class);
+    brave.Span span = mock(brave.Span.class);
     when(span.context()).thenReturn(context);
     when(span.customizer()).thenReturn(span);
 
-    handler.handleSend(mock(RpcServerResponse.class), null, span);
+    handler.handleSend(response, span);
 
     verify(span).isNoop();
     verify(span).context();
@@ -136,13 +128,14 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void handleSend_finishesSpanEvenIfUnwrappedNull_withError() {
-    Span span = mock(Span.class);
+    brave.Span span = mock(brave.Span.class);
     when(span.context()).thenReturn(context);
     when(span.customizer()).thenReturn(span);
 
     Exception error = new RuntimeException("peanuts");
+    when(response.error()).thenReturn(error);
 
-    handler.handleSend(mock(RpcServerResponse.class), error, span);
+    handler.handleSend(response, span);
 
     verify(span).isNoop();
     verify(span).context();
@@ -153,10 +146,10 @@ public class RpcServerHandlerTest {
   }
 
   @Test public void handleSend_oneOfResponseError() {
-    Span span = mock(Span.class);
+    brave.Span span = mock(brave.Span.class);
 
-    assertThatThrownBy(() -> handler.handleSend(null, null, span))
-      .isInstanceOf(IllegalArgumentException.class)
-      .hasMessage("Either the response or error parameters may be null, but not both");
+    assertThatThrownBy(() -> handler.handleSend(null, span))
+      .isInstanceOf(NullPointerException.class)
+      .hasMessage("response == null");
   }
 }

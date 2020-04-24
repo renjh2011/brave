@@ -25,31 +25,42 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RpcParserTest {
+public class RpcResponseParserTest {
   TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(10L).build();
-  @Mock SpanCustomizer spanCustomizer;
-  @Mock RpcRequest request;
   @Mock RpcResponse response;
+  @Mock SpanCustomizer span;
 
-  @Test public void request_addsNameServiceAndMethod() {
-    when(request.service()).thenReturn("zipkin.proto3.SpanService");
-    when(request.method()).thenReturn("Report");
+  RpcResponseParser responseParser = RpcResponseParser.DEFAULT;
 
-    RpcRequestParser.DEFAULT.parse(request, context, spanCustomizer);
+  @Test public void responseParser_noData() {
+    responseParser.parse(response, context, span);
 
-    verify(spanCustomizer).name("zipkin.proto3.SpanService/Report");
-    verify(spanCustomizer).tag("rpc.service", "zipkin.proto3.SpanService");
-    verify(spanCustomizer).tag("rpc.method", "Report");
-    verifyNoMoreInteractions(spanCustomizer);
+    verify(response).errorCode();
+    verifyNoMoreInteractions(response, span);
   }
 
-  @Test public void response_setsErrorTagToErrorCode() {
+  @Test public void responseParser_errorCode_whenErrorNull() {
     when(response.errorCode()).thenReturn("CANCELLED");
 
-    RpcResponseParser.DEFAULT.parse(response, context, spanCustomizer);
+    responseParser.parse(response, context, span);
 
-    verify(spanCustomizer).tag("rpc.error_code", "CANCELLED");
-    verify(spanCustomizer).tag("error", "CANCELLED");
-    verifyNoMoreInteractions(spanCustomizer);
+    verify(response).errorCode();
+    verify(response).error();
+    verify(span).tag("rpc.error_code", "CANCELLED");
+    verify(span).tag("error", "CANCELLED");
+    verifyNoMoreInteractions(response, span);
+  }
+
+  /** Ensure we don't obviate a better "error" tag later when an exception is present. */
+  @Test public void responseParser_errorCode_whenError() {
+    when(response.error()).thenReturn(new RuntimeException());
+    when(response.errorCode()).thenReturn("CANCELLED");
+
+    responseParser.parse(response, context, span);
+
+    verify(response).errorCode();
+    verify(response).error();
+    verify(span).tag("rpc.error_code", "CANCELLED");
+    verifyNoMoreInteractions(response, span);
   }
 }

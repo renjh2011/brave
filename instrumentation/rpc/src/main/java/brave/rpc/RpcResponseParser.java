@@ -17,6 +17,7 @@ import brave.Span;
 import brave.SpanCustomizer;
 import brave.Tags;
 import brave.Tracing;
+import brave.handler.FinishedSpanHandler;
 import brave.propagation.TraceContext;
 
 /**
@@ -51,7 +52,11 @@ public interface RpcResponseParser {
   void parse(RpcResponse response, TraceContext context, SpanCustomizer span);
 
   /**
-   * The default data policy sets "error" tags to the value of {@link RpcResponse#errorCode()}.
+   * The default data policy sets {@link RpcTags#ERROR_CODE} tag, and also "error", if there is no
+   * {@linkplain RpcResponse#error() exception}.
+   *
+   * <p><em>Note</em>:The exception will be tagged by default in Zipkin, but if you are using a
+   * {@link FinishedSpanHandler} to another destination, you should process accordingly.
    *
    * @since 5.12
    */
@@ -59,8 +64,10 @@ public interface RpcResponseParser {
   // If this were not an abstraction, we'd use separate hooks for response and error.
   class Default implements RpcResponseParser {
     @Override public void parse(RpcResponse response, TraceContext context, SpanCustomizer span) {
-      String errorCode = response.errorCode();
-      if (errorCode != null) span.tag(Tags.ERROR.key(), errorCode);
+      String errorCode = RpcTags.ERROR_CODE.tag(response, span);
+      if (errorCode != null && response.error() == null) {
+        span.tag(Tags.ERROR.key(), errorCode);
+      }
     }
   }
 }

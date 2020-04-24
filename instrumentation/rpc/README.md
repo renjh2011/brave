@@ -9,11 +9,13 @@ instructions on what to put into rpc spans, and sampling policy.
 
 ## Span data policy
 By default, the following are added to both RPC client and server spans:
-* Span.name is the RPC method in lowercase: ex "report"
+* Span.name is the RPC service/method. Ex. "zipkin.proto3.SpanService/Report"
+  * If the service is absent, the method is the name and visa versa.
 * Tags:
   * "rpc.method", eg "Report"
   * "rpc.service", eg "zipkin.proto3.SpanService"
-  * "error" defaults to the RPC error code if present
+  * "rpc.error_code", eg "CANCELLED"
+  * "error" the RPC error code if there is no exception
 * Remote IP and port information
 
 Naming and tags are configurable in a library-agnostic way. For example,

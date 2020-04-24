@@ -21,7 +21,7 @@ import brave.propagation.TraceContext;
 import java.lang.reflect.Method;
 
 /**
- * Abstract request type used for parsing and sampling of rpc clients and servers.
+ * Abstract request type used for parsing and sampling of RPC clients and servers.
  *
  * @see RpcClientRequest
  * @see RpcServerRequest

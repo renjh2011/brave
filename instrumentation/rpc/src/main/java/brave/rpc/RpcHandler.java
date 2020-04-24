@@ -14,7 +14,9 @@
 package brave.rpc;
 
 import brave.Span;
-import brave.internal.Nullable;
+import brave.internal.Platform;
+
+import static brave.internal.Throwables.propagateIfFatal;
 
 abstract class RpcHandler<Req extends RpcRequest, Resp extends RpcResponse> {
   final RpcRequestParser requestParser;
@@ -30,6 +32,9 @@ abstract class RpcHandler<Req extends RpcRequest, Resp extends RpcResponse> {
 
     try {
       parseRequest(request, span);
+    } catch (Throwable t) {
+      propagateIfFatal(t);
+      Platform.get().log("error parsing request {0}", request, t);
     } finally {
       // all of the above parsing happened before a timestamp on the span
       long timestamp = request.startTimestamp();
@@ -52,25 +57,19 @@ abstract class RpcHandler<Req extends RpcRequest, Resp extends RpcResponse> {
     responseParser.parse(response, span.context(), span.customizer());
   }
 
-  void handleFinish(@Nullable Resp response, @Nullable Throwable error, Span span) {
-    if (response == null && error == null) {
-      throw new IllegalArgumentException(
-        "Either the response or error parameters may be null, but not both");
-    }
-
+  void handleFinish(Resp response, Span span) {
+    if (response == null) throw new NullPointerException("response == null");
     if (span.isNoop()) return;
 
-    if (error != null) {
-      span.error(error); // Ensures MutableSpan.error() for FinishedSpanHandler
-
-      if (response == null) { // There's nothing to parse: finish and return;
-        span.finish();
-        return;
-      }
+    if (response.error() != null) {
+      span.error(response.error()); // Ensures MutableSpan.error() for FinishedSpanHandler
     }
 
     try {
       parseResponse(response, span);
+    } catch (Throwable t) {
+      propagateIfFatal(t);
+      Platform.get().log("error parsing response {0}", response, t);
     } finally {
       long finishTimestamp = response.finishTimestamp();
       if (finishTimestamp == 0L) {

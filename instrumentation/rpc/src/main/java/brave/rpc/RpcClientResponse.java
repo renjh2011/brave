@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 The OpenZipkin Authors
+ * Copyright 2013-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,6 +23,10 @@ import brave.Span;
  * @since 5.10
  */
 public abstract class RpcClientResponse extends RpcResponse {
+  @Override public final Span.Kind spanKind() {
+    return Span.Kind.CLIENT;
+  }
+
   /**
    * Like {@link RpcRequest#parseRemoteIpAndPort(Span)} for when the client library cannot read
    * socket information before a request is made.
