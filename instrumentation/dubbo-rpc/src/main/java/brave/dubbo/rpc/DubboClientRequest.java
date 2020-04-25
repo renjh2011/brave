@@ -21,7 +21,7 @@ import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.RpcContext;
 import java.util.Map;
 
-class DubboClientRequest extends RpcClientRequest implements DubboRequest { // not final for mock
+final class DubboClientRequest extends RpcClientRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
   final Map<String, String> attachments;

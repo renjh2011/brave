@@ -19,7 +19,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 
-class DubboServerRequest extends RpcServerRequest implements DubboRequest { // not final for mock
+final class DubboServerRequest extends RpcServerRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
 

@@ -21,7 +21,7 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.RpcContext;
 
-class DubboClientRequest extends RpcClientRequest implements DubboRequest { // not final for mock
+final class DubboClientRequest extends RpcClientRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
   final Map<String, String> attachments;
