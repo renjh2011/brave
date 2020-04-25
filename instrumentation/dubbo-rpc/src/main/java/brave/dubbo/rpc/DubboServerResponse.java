@@ -23,7 +23,8 @@ final class DubboServerResponse extends RpcServerResponse implements DubboRespon
   @Nullable final Result result;
   @Nullable final Throwable error;
 
-  DubboServerResponse(DubboServerRequest request, Result result, @Nullable Throwable error) {
+  DubboServerResponse(
+    DubboServerRequest request, @Nullable Result result, @Nullable Throwable error) {
     if (request == null) throw new NullPointerException("request == null");
     this.request = request;
     this.result = result;
