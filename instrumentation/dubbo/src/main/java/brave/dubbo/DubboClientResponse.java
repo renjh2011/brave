@@ -34,7 +34,6 @@ class DubboClientResponse extends RpcClientResponse implements DubboResponse { /
     return result;
   }
 
-  /** Returns the {@link Result}. */
   @Override public Result unwrap() {
     return result;
   }
