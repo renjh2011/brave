@@ -31,9 +31,10 @@ public abstract class ITTracingFilter extends ITRemote {
   }
 
   /** Call this after updating {@link #tracing} or {@link #rpcTracing} */
-  void init() {
-    ((TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
-      .getExtension("tracing"))
-      .setRpcTracing(rpcTracing);
+  TracingFilter init() {
+    TracingFilter filter = (TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
+      .getExtension("tracing");
+    filter.setRpcTracing(rpcTracing);
+    return filter;
   }
 }

@@ -50,8 +50,7 @@ class TestServer {
     service.setProtocol(new ProtocolConfig("dubbo", PickUnusedPort.get()));
     service.setInterface(GreeterService.class);
     service.setRef((method, parameterTypes, args) -> {
-      RpcContext context = RpcContext.getContext();
-      requestQueue.add(extractor.extract(context.getAttachments()));
+      requestQueue.add(extractor.extract(RpcContext.getContext().getAttachments()));
       return args[0];
     });
   }

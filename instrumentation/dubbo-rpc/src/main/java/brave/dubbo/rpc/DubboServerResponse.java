@@ -11,12 +11,12 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package brave.dubbo;
+package brave.dubbo.rpc;
 
 import brave.internal.Nullable;
 import brave.rpc.RpcServerResponse;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
+import com.alibaba.dubbo.rpc.Result;
+import com.alibaba.dubbo.rpc.RpcException;
 
 class DubboServerResponse extends RpcServerResponse implements DubboResponse { // not final for mock
   final DubboServerRequest request;

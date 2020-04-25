@@ -19,7 +19,6 @@ import brave.SpanCustomizer;
 import brave.Tag;
 import brave.Tracer;
 import brave.Tracing;
-import brave.internal.Nullable;
 import brave.propagation.CurrentTraceContext;
 import brave.propagation.CurrentTraceContext.Scope;
 import brave.propagation.TraceContext;
@@ -30,7 +29,6 @@ import brave.rpc.RpcServerHandler;
 import brave.rpc.RpcTracing;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.common.extension.ExtensionLoader;
@@ -105,17 +103,19 @@ public final class TracingFilter implements Filter {
   @Override
   public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
     if (!isInit) return invoker.invoke(invocation);
+    TraceContext invocationContext = currentTraceContext.get();
 
     RpcContext rpcContext = RpcContext.getContext();
     Kind kind = rpcContext.isProviderSide() ? Kind.SERVER : Kind.CLIENT;
-    final Span span;
-    DubboClientRequest clientRequest = null;
-    DubboServerRequest serverRequest = null;
+    Span span;
+    DubboRequest request;
     if (kind.equals(Kind.CLIENT)) {
-      clientRequest = new DubboClientRequest(invoker, invocation);
-      span = clientHandler.handleSend(clientRequest);
+      DubboClientRequest clientRequest = new DubboClientRequest(invoker, invocation);
+      request = clientRequest;
+      span = clientHandler.handleSendWithParent(clientRequest, invocationContext);
     } else {
-      serverRequest = new DubboServerRequest(invoker, invocation);
+      DubboServerRequest serverRequest = new DubboServerRequest(invoker, invocation);
+      request = serverRequest;
       span = serverHandler.handleReceive(serverRequest);
     }
 
@@ -129,13 +129,10 @@ public final class TracingFilter implements Filter {
       Future<Object> future = rpcContext.getFuture(); // the case on async client invocation
       if (future instanceof CompletableFuture) {
         deferFinish = true;
-        if (clientRequest != null) {
-          ((CompletableFuture<?>) future).whenComplete(
-            new FinishClientRequest(clientHandler, clientRequest, result, span));
-        } else {
-          ((CompletableFuture<?>) future).whenComplete(
-            new FinishServerRequest(serverHandler, serverRequest, result, span));
-        }
+        // NOTE: We don't currently instrument CompletableFuture, so callbacks will not see the
+        // invocation context unless they use an executor instrumented by CurrentTraceContext
+        ((CompletableFuture<?>) future)
+          .whenComplete(FinishSpan.create(this, request, result, span));
       }
       return result;
     } catch (Throwable e) {
@@ -143,52 +140,8 @@ public final class TracingFilter implements Filter {
       error = e;
       throw e;
     } finally {
-      if (!deferFinish) {
-        if (clientRequest != null) {
-          clientHandler.handleReceive(new DubboClientResponse(clientRequest, result, error), span);
-        } else {
-          serverHandler.handleSend(new DubboServerResponse(serverRequest, result, error), span);
-        }
-      }
+      if (!deferFinish) FinishSpan.finish(this, request, result, error, span);
       scope.close();
-    }
-  }
-
-  static final class FinishClientRequest implements BiConsumer<Object, Throwable> {
-    final RpcClientHandler clientHandler;
-    final DubboClientRequest clientRequest;
-    final Result result;
-    final Span span;
-
-    FinishClientRequest(RpcClientHandler clientHandler, DubboClientRequest clientRequest,
-      Result result, Span span) {
-      this.clientHandler = clientHandler;
-      this.clientRequest = clientRequest;
-      this.result = result;
-      this.span = span;
-    }
-
-    @Override public void accept(Object o, @Nullable Throwable error) {
-      clientHandler.handleReceive(new DubboClientResponse(clientRequest, result, error), span);
-    }
-  }
-
-  static final class FinishServerRequest implements BiConsumer<Object, Throwable> {
-    final RpcServerHandler serverHandler;
-    final DubboServerRequest serverRequest;
-    final Result result;
-    final Span span;
-
-    FinishServerRequest(RpcServerHandler serverHandler, DubboServerRequest serverRequest,
-      Result result, Span span) {
-      this.serverHandler = serverHandler;
-      this.serverRequest = serverRequest;
-      this.result = result;
-      this.span = span;
-    }
-
-    @Override public void accept(Object o, @Nullable Throwable error) {
-      serverHandler.handleSend(new DubboServerResponse(serverRequest, result, error), span);
     }
   }
 }

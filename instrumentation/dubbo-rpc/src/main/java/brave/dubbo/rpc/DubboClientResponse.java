@@ -11,19 +11,19 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package brave.dubbo;
+package brave.dubbo.rpc;
 
 import brave.internal.Nullable;
-import brave.rpc.RpcServerResponse;
-import org.apache.dubbo.rpc.Result;
-import org.apache.dubbo.rpc.RpcException;
+import brave.rpc.RpcClientResponse;
+import com.alibaba.dubbo.rpc.Result;
+import com.alibaba.dubbo.rpc.RpcException;
 
-class DubboServerResponse extends RpcServerResponse implements DubboResponse { // not final for mock
-  final DubboServerRequest request;
+class DubboClientResponse extends RpcClientResponse implements DubboResponse { // not final for mock
+  final DubboClientRequest request;
   @Nullable final Result result;
   @Nullable final Throwable error;
 
-  DubboServerResponse(DubboServerRequest request, Result result, @Nullable Throwable error) {
+  DubboClientResponse(DubboClientRequest request, Result result, @Nullable Throwable error) {
     if (request == null) throw new NullPointerException("request == null");
     this.request = request;
     this.result = result;
@@ -39,7 +39,7 @@ class DubboServerResponse extends RpcServerResponse implements DubboResponse { /
     return result;
   }
 
-  @Override public DubboServerRequest request() {
+  @Override public DubboClientRequest request() {
     return request;
   }
 

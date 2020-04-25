@@ -18,7 +18,7 @@ import brave.rpc.RpcClientResponse;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
-final class DubboClientResponse extends RpcClientResponse implements DubboResponse {
+class DubboClientResponse extends RpcClientResponse implements DubboResponse { // not final for mock
   final DubboClientRequest request;
   @Nullable final Result result;
   @Nullable final Throwable error;
