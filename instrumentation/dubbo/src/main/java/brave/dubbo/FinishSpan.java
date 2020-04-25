@@ -62,7 +62,7 @@ abstract class FinishSpan implements BiConsumer<Object, Throwable> {
       this.request = request;
     }
 
-    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object unused, @Nullable Throwable error) {
       clientHandler.handleReceive(new DubboClientResponse(request, result, error), span);
     }
   }
@@ -78,7 +78,7 @@ abstract class FinishSpan implements BiConsumer<Object, Throwable> {
       this.request = request;
     }
 
-    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object unused, @Nullable Throwable error) {
       serverHandler.handleSend(new DubboServerResponse(request, result, error), span);
     }
   }

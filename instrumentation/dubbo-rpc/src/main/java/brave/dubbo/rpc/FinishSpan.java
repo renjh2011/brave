@@ -53,7 +53,7 @@ abstract class FinishSpan { // implements BiConsumer<Object, Throwable> except J
   }
 
   /** One, but not both parameters can be {@code null}. */
-  public abstract void accept(@Nullable Object resultValue, @Nullable Throwable error);
+  public abstract void accept(@Nullable Object unused, @Nullable Throwable error);
 
   static final class FinishClientSpan extends FinishSpan {
     final RpcClientHandler clientHandler;
@@ -66,7 +66,7 @@ abstract class FinishSpan { // implements BiConsumer<Object, Throwable> except J
       this.request = request;
     }
 
-    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object unused, @Nullable Throwable error) {
       clientHandler.handleReceive(new DubboClientResponse(request, result, error), span);
     }
   }
@@ -82,7 +82,7 @@ abstract class FinishSpan { // implements BiConsumer<Object, Throwable> except J
       this.request = request;
     }
 
-    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object unused, @Nullable Throwable error) {
       serverHandler.handleSend(new DubboServerResponse(request, result, error), span);
     }
   }
