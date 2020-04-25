@@ -50,9 +50,8 @@ public abstract class RpcServerRequest extends RpcRequest {
    * envelopes or even binary data.
    * <h3>Notes</h3>
    * <p>This is only used when {@link TraceContext.Injector#inject(TraceContext, Object) injecting}
-   * a trace
-   * context as internally implemented by {@link RpcClientHandler}. Calls during sampling or parsing
-   * are invalid and may be ignored by instrumentation.
+   * a trace context as internally implemented by {@link RpcClientHandler}. Calls during sampling or
+   * parsing are invalid and may be ignored by instrumentation.
    *
    * <p>Header based requests will use headers, but this could set RPC
    * envelopes or even binary data.

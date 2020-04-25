@@ -50,14 +50,18 @@ public interface RpcRequestParser {
    */
   class Default implements RpcRequestParser {
     @Override public void parse(RpcRequest req, TraceContext context, SpanCustomizer span) {
-      String service = RpcTags.SERVICE.tag(req, context, span);
-      String method = RpcTags.METHOD.tag(req, context, span);
+      String service = req.service();
+      String method = req.method();
       if (service == null && method == null) return;
       if (service == null) {
+        span.tag(RpcTags.METHOD.key(), method);
         span.name(method);
       } else if (method == null) {
+        span.tag(RpcTags.SERVICE.key(), service);
         span.name(service);
       } else {
+        span.tag(RpcTags.SERVICE.key(), service);
+        span.tag(RpcTags.METHOD.key(), method);
         span.name(service + "/" + method);
       }
     }

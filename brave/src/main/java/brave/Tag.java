@@ -87,41 +87,38 @@ public abstract class Tag<I> {
   /**
    * Tags the value parsed from the {@code input}.
    *
-   * @return the tag value if one was parsed.
    * @since 5.11
    */
   // ex void parse(HttpRequest request, TraceContext context, SpanCustomizer span);
-  @Nullable public final String tag(I input, @Nullable TraceContext context, SpanCustomizer span) {
+  public final void tag(I input, @Nullable TraceContext context, SpanCustomizer span) {
     if (input == null) throw new NullPointerException("input == null");
     if (span == null) throw new NullPointerException("span == null");
-    if (span == NoopSpanCustomizer.INSTANCE) return null;
-    return tag(span, input, context);
+    if (span == NoopSpanCustomizer.INSTANCE) return;
+    tag(span, input, context);
   }
 
   /**
    * Tags the value parsed from the {@code input}.
    *
-   * @return the tag value if one was parsed.
    * @since 5.11
    */
-  @Nullable public final String tag(I input, SpanCustomizer span) {
+  public final void tag(I input, SpanCustomizer span) {
     if (input == null) throw new NullPointerException("input == null");
     if (span == null) throw new NullPointerException("span == null");
-    if (span == NoopSpanCustomizer.INSTANCE) return null;
-    return tag(span, input, null);
+    if (span == NoopSpanCustomizer.INSTANCE) return;
+    tag(span, input, null);
   }
 
   /**
    * Tags the value parsed from the {@code input}.
    *
-   * @return the tag value if one was parsed.
    * @see FinishedSpanHandler#handle(TraceContext, MutableSpan)
    * @since 5.11
    */
-  @Nullable public final String tag(I input, @Nullable TraceContext context, MutableSpan span) {
+  public final void tag(I input, @Nullable TraceContext context, MutableSpan span) {
     if (input == null) throw new NullPointerException("input == null");
     if (span == null) throw new NullPointerException("span == null");
-    return tag(span, input, context);
+    tag(span, input, context);
   }
 
   final String key;
@@ -135,7 +132,7 @@ public abstract class Tag<I> {
     return getClass().getSimpleName() + "{" + key + "}";
   }
 
-  @Nullable final String tag(Object span, I input, @Nullable TraceContext context) {
+  final void tag(Object span, I input, @Nullable TraceContext context) {
     String key = null;
     String value = null;
     Throwable error = null;
@@ -151,19 +148,18 @@ public abstract class Tag<I> {
 
     if (key == null || key.isEmpty()) {
       Platform.get().log("Error parsing tag key of input %s", input, error);
-      return value;
+      return;
     } else if (error != null) {
       Platform.get().log("Error parsing tag value of input %s", input, error);
-      return value;
+      return;
     }
 
-    if (value == null) return null;
+    if (value == null) return;
     if (span instanceof SpanCustomizer) {
       ((SpanCustomizer) span).tag(key, value);
     } else if (span instanceof MutableSpan) {
       ((MutableSpan) span).tag(key, value);
     }
-    return value;
   }
 
   protected static String validateNonEmpty(String label, String value) {

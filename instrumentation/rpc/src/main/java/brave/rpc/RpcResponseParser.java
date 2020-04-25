@@ -62,9 +62,12 @@ public interface RpcResponseParser {
    */
   class Default implements RpcResponseParser {
     @Override public void parse(RpcResponse response, TraceContext context, SpanCustomizer span) {
-      String errorCode = RpcTags.ERROR_CODE.tag(response, span);
-      if (errorCode != null && response.error() == null) {
-        span.tag(Tags.ERROR.key(), errorCode);
+      String errorCode = response.errorCode();
+      if (errorCode != null) {
+        span.tag(RpcTags.ERROR_CODE.key(), errorCode);
+        if (response.error() == null) {
+          span.tag(Tags.ERROR.key(), errorCode);
+        }
       }
     }
   }
