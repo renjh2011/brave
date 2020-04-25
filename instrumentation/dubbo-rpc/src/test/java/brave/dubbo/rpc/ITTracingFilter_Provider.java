@@ -147,7 +147,11 @@ public class ITTracingFilter_Provider extends ITTracingFilter {
       @Override protected String parseValue(DubboResponse input, TraceContext context) {
         Result result = input.result();
         if (result == null) return null;
-        return String.valueOf(result.getValue());
+        Object value = result.getValue();
+        if (value instanceof JavaBeanDescriptor) {
+          return String.valueOf(((JavaBeanDescriptor) value).getProperty("value"));
+        }
+        return null;
       }
     };
     RpcResponseParser customResponseParser = new RpcResponseParser() {
