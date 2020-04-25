@@ -39,11 +39,11 @@ class TracingResponseCallback implements ResponseCallback {
   }
 
   @Override public void done(Object response) {
-    finishSpan.finish(response, null);
+    finishSpan.accept(response, null);
   }
 
   @Override public void caught(Throwable exception) {
-    finishSpan.finish(null, exception);
+    finishSpan.accept(null, exception);
   }
 
   static final class DelegateAndFinishSpan extends TracingResponseCallback {

@@ -34,7 +34,7 @@ public class TracingResponseCallbackTest {
 
     callback.done(null);
 
-    verify(finishSpan).finish(null, null);
+    verify(finishSpan).accept(null, null);
   }
 
   @Test public void done_should_finish_span_caught() {
@@ -44,7 +44,7 @@ public class TracingResponseCallbackTest {
     Throwable error = new Exception("Test exception");
     callback.caught(error);
 
-    verify(finishSpan).finish(null, error);
+    verify(finishSpan).accept(null, error);
   }
 
   @Test public void done_should_forward_then_finish_span() {
@@ -57,7 +57,7 @@ public class TracingResponseCallbackTest {
     callback.done(result);
 
     verify(delegate).done(result);
-    verify(finishSpan).finish(result, null);
+    verify(finishSpan).accept(result, null);
   }
 
   @Test public void done_should_have_span_in_scope() {
@@ -77,7 +77,7 @@ public class TracingResponseCallbackTest {
     Object result = new Object();
     callback.done(result);
 
-    verify(finishSpan).finish(result, null);
+    verify(finishSpan).accept(result, null);
   }
 
   @Test public void done_should_have_span_in_scope_caught() {
@@ -97,6 +97,6 @@ public class TracingResponseCallbackTest {
     Throwable error = new Exception("Test exception");
     callback.caught(error);
 
-    verify(finishSpan).finish(null, error);
+    verify(finishSpan).accept(null, error);
   }
 }

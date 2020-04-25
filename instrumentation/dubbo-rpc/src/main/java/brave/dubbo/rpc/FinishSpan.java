@@ -20,7 +20,9 @@ import brave.rpc.RpcClientRequest;
 import brave.rpc.RpcServerHandler;
 import com.alibaba.dubbo.rpc.Result;
 
-abstract class FinishSpan {
+// Intentionally the same as Apache Dubbo, even though we don't use the first arg.
+// When the signature is the same, it reduces work porting bug fixes or tests
+abstract class FinishSpan { // implements BiConsumer<Object, Throwable> except Java 6
   static void finish(TracingFilter filter,
     DubboRequest request, @Nullable Result result, @Nullable Throwable error, Span span) {
     if (request instanceof RpcClientRequest) {
@@ -51,7 +53,7 @@ abstract class FinishSpan {
   }
 
   /** One, but not both parameters can be {@code null}. */
-  abstract void finish(@Nullable Object resultValue, @Nullable Throwable error);
+  public abstract void accept(@Nullable Object resultValue, @Nullable Throwable error);
 
   static final class FinishClientSpan extends FinishSpan {
     final RpcClientHandler clientHandler;
@@ -64,7 +66,7 @@ abstract class FinishSpan {
       this.request = request;
     }
 
-    @Override void finish(Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
       clientHandler.handleReceive(new DubboClientResponse(request, result, error), span);
     }
   }
@@ -80,7 +82,7 @@ abstract class FinishSpan {
       this.request = request;
     }
 
-    @Override void finish(Object resultValue, @Nullable Throwable error) {
+    @Override public void accept(@Nullable Object resultValue, @Nullable Throwable error) {
       serverHandler.handleSend(new DubboServerResponse(request, result, error), span);
     }
   }

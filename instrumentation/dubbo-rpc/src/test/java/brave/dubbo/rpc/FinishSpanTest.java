@@ -82,7 +82,7 @@ public class FinishSpanTest extends ITTracingFilter {
     Span span = tracing.tracer().nextSpan().kind(Span.Kind.CLIENT).start();
 
     FinishSpan.create(filter, mock(DubboClientRequest.class), mock(Result.class), span)
-      .finish(null, null);
+      .accept(null, null);
 
     reporter.takeRemoteSpan(Kind.CLIENT);
   }
@@ -91,7 +91,7 @@ public class FinishSpanTest extends ITTracingFilter {
     Span span = tracing.tracer().nextSpan().kind(Span.Kind.SERVER).start();
 
     FinishSpan.create(filter, mock(DubboServerRequest.class), mock(Result.class), span)
-      .finish(null, null);
+      .accept(null, null);
 
     reporter.takeRemoteSpan(Kind.SERVER);
   }
@@ -100,7 +100,7 @@ public class FinishSpanTest extends ITTracingFilter {
     Span span = tracing.tracer().nextSpan().kind(Span.Kind.CLIENT).start();
 
     FinishSpan.create(filter, mock(DubboClientRequest.class), mock(Result.class), span)
-      .finish(new Object(), null);
+      .accept(new Object(), null);
 
     reporter.takeRemoteSpan(Kind.CLIENT);
   }
@@ -109,7 +109,7 @@ public class FinishSpanTest extends ITTracingFilter {
     Span span = tracing.tracer().nextSpan().kind(Span.Kind.SERVER).start();
 
     FinishSpan.create(filter, mock(DubboServerRequest.class), mock(Result.class), span)
-      .finish(new Object(), null);
+      .accept(new Object(), null);
 
     reporter.takeRemoteSpan(Kind.SERVER);
   }
@@ -119,7 +119,7 @@ public class FinishSpanTest extends ITTracingFilter {
 
     Throwable error = new RuntimeException("melted");
     FinishSpan.create(filter, mock(DubboClientRequest.class), mock(Result.class), span)
-      .finish(null, error);
+      .accept(null, error);
 
     reporter.takeRemoteSpanWithError(Kind.CLIENT, error.getMessage());
   }
@@ -129,7 +129,7 @@ public class FinishSpanTest extends ITTracingFilter {
 
     Throwable error = new RuntimeException("melted");
     FinishSpan.create(filter, mock(DubboServerRequest.class), mock(Result.class), span)
-      .finish(null, error);
+      .accept(null, error);
 
     reporter.takeRemoteSpanWithError(Kind.SERVER, error.getMessage());
   }
