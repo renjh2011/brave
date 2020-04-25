@@ -26,7 +26,7 @@ import brave.propagation.TraceContext;
  *
  * <p>Here's an example that adds the "rpc.error_code" even though "error" contains it.
  * <pre>{@code
- * rpcTracing = rpcTracing.toBuilder()
+ * rpcTracing = rpcTracingBuilder
  *   .clientResponseParser((response, context, span) -> {
  *     RpcResponseParser.DEFAULT.parse(response, context, span);
  *     RpcTags.ERROR_CODE.tag(response, context, span);
@@ -41,7 +41,7 @@ public interface RpcResponseParser {
   RpcResponseParser DEFAULT = new Default();
 
   /**
-   * Implement to choose what data from the rpc response are parsed into the span representing it.
+   * Implement to choose what data from the RPC response are parsed into the span representing it.
    *
    * <p>Note: This is called after {@link Span#error(Throwable)}, which means any "error" tag set
    * here will overwrite what the {@linkplain Tracing#errorParser() error parser} set.
@@ -60,8 +60,6 @@ public interface RpcResponseParser {
    *
    * @since 5.12
    */
-  // This accepts response or exception because sometimes rpc 500 is an exception and sometimes not
-  // If this were not an abstraction, we'd use separate hooks for response and error.
   class Default implements RpcResponseParser {
     @Override public void parse(RpcResponse response, TraceContext context, SpanCustomizer span) {
       String errorCode = RpcTags.ERROR_CODE.tag(response, span);

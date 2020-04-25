@@ -17,7 +17,6 @@ import brave.Span;
 import brave.Span.Kind;
 import brave.SpanCustomizer;
 import brave.Tag;
-import brave.Tags;
 import brave.Tracer;
 import brave.Tracing;
 import brave.internal.Nullable;
@@ -49,17 +48,15 @@ import static brave.internal.Throwables.propagateIfFatal;
 // http://dubbo.apache.org/en-us/docs/dev/impls/filter.html
 // public constructor permitted to allow dubbo to instantiate this
 public final class TracingFilter implements Filter {
-  static final Tag<RpcResponse> DUBBO_ERROR_CODE = new Tag<RpcResponse>("dubbo.error_code") {
-    @Override protected String parseValue(RpcResponse input, TraceContext context) {
-      return input.errorCode();
+  static final Tag<Throwable> DUBBO_ERROR_CODE = new Tag<Throwable>("dubbo.error_code") {
+    @Override protected String parseValue(Throwable input, TraceContext context) {
+      if (!(input instanceof RpcException)) return null;
+      return String.valueOf(((RpcException) input).getCode());
     }
   };
   static final RpcResponseParser LEGACY_RESPONSE_PARSER = new RpcResponseParser() {
     @Override public void parse(RpcResponse response, TraceContext context, SpanCustomizer span) {
-      String errorCode = DUBBO_ERROR_CODE.tag(response, span);
-      if (errorCode != null && response.error() == null) {
-        span.tag(Tags.ERROR.key(), errorCode);
-      }
+      DUBBO_ERROR_CODE.tag(response.error(), span);
     }
   };
 
@@ -73,8 +70,10 @@ public final class TracingFilter implements Filter {
    * {@link ExtensionLoader} supplies the tracing implementation which must be named "tracing". For
    * example, if using the {@link SpringExtensionFactory}, only a bean named "tracing" will be
    * injected.
+   *
+   * @deprecated Since 5.12 only use {@link #setRpcTracing(RpcTracing)}
    */
-  public void setTracing(Tracing tracing) {
+  @Deprecated public void setTracing(Tracing tracing) {
     if (tracing == null) throw new NullPointerException("rpcTracing == null");
     if (isInit) return; // don't override an existing Rpc Tracing
     setRpcTracing(RpcTracing.newBuilder(tracing)
@@ -87,6 +86,11 @@ public final class TracingFilter implements Filter {
    * {@link ExtensionLoader} supplies the tracing implementation which must be named "rpcTracing".
    * For example, if using the {@link SpringExtensionFactory}, only a bean named "rpcTracing" will
    * be injected.
+   *
+   * <h3>Custom parsing</h3>
+   * Custom parsers, such as {@link RpcTracing#clientRequestParser()}, can use Dubbo-specific types
+   * {@link DubboRequest} and {@link DubboResponse} to get access such as the Java invocation or
+   * result.
    */
   public void setRpcTracing(RpcTracing rpcTracing) {
     if (rpcTracing == null) throw new NullPointerException("rpcTracing == null");

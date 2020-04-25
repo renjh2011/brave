@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 The OpenZipkin Authors
+ * Copyright 2013-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,7 +25,7 @@ import brave.sampler.SamplerFunction;
  * component}.
  *
  * <p>This also allows one object to customize both {@link Tracing}, via {@link TracingCustomizer},
- * and the rpc layer {@link RpcTracing}, by implementing both customizer interfaces.
+ * and the RPC layer {@link RpcTracing}, by implementing both customizer interfaces.
  *
  * <h3>Integration examples</h3>
  *

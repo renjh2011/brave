@@ -18,8 +18,7 @@ import brave.rpc.RpcClientResponse;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
-/** @since 5.12 */
-public final class DubboClientResponse extends RpcClientResponse {
+final class DubboClientResponse extends RpcClientResponse implements DubboResponse {
   final DubboClientRequest request;
   @Nullable final Result result;
   @Nullable final Throwable error;
@@ -31,17 +30,19 @@ public final class DubboClientResponse extends RpcClientResponse {
     this.error = error;
   }
 
+  @Override public Result result() {
+    return result;
+  }
+
   /** Returns the {@link Result}. */
   @Override public Result unwrap() {
     return result;
   }
 
-  /** {@inheritDoc} */
   @Override public DubboClientRequest request() {
     return request;
   }
 
-  /** {@inheritDoc} */
   @Override public Throwable error() {
     return error;
   }

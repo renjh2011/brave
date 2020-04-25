@@ -21,8 +21,7 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.RpcContext;
 
-/** @since 5.12 */
-public final class DubboClientRequest extends RpcClientRequest {
+final class DubboClientRequest extends RpcClientRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
   final Map<String, String> attachments;
@@ -39,8 +38,12 @@ public final class DubboClientRequest extends RpcClientRequest {
     this.attachments = RpcContext.getContext().getAttachments();
   }
 
-  public Invoker<?> invoker() {
+  @Override public Invoker<?> invoker() {
     return invoker;
+  }
+
+  @Override public Invocation invocation() {
+    return invocation;
   }
 
   /** Returns the {@link Invocation}. */
@@ -63,7 +66,6 @@ public final class DubboClientRequest extends RpcClientRequest {
     return DubboParser.service(invocation);
   }
 
-  /** {@inheritDoc} */
   @Override public boolean parseRemoteIpAndPort(Span span) {
     return DubboParser.parseRemoteIpAndPort(span);
   }

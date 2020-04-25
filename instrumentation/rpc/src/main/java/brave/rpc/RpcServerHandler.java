@@ -32,7 +32,7 @@ import brave.sampler.SamplerFunction;
  *   <li>Extract any trace IDs from headers and start the span</li>
  *   <li>Put the span in scope so things like log integration works</li>
  *   <li>Process the request</li>
- *   <li>Catch any errors</li>
+ *   <li>If there was a Throwable, add it to the span</li>
  *   <li>Complete the span</li>
  * </ol>
  * <pre>{@code
@@ -46,10 +46,9 @@ import brave.sampler.SamplerFunction;
  *   error = e; // 4.
  *   throw e;
  * } finally {
- *   RpcServerResponseWrapper response = result != null
- *     ? new RpcServerResponseWrapper(wrapper, result, error)
- *     : null;
- *   handler.handleSend(response, error, span); // 5.
+ *   RpcServerResponseWrapper response =
+ *     new RpcServerResponseWrapper(wrapper, result, error);
+ *   handler.handleSend(response, span); // 5.
  * }
  * }</pre>
  *
@@ -91,7 +90,7 @@ public final class RpcServerHandler extends RpcHandler<RpcServerRequest, RpcServ
   /** Creates a potentially noop span representing this request */
   Span nextSpan(TraceContextOrSamplingFlags extracted, RpcServerRequest request) {
     Boolean sampled = extracted.sampled();
-    // only recreate the context if the rpc sampler made a decision
+    // only recreate the context if the RPC sampler made a decision
     if (sampled == null && (sampled = sampler.trySample(request)) != null) {
       extracted = extracted.sampled(sampled.booleanValue());
     }

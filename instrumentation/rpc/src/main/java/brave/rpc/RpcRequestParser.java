@@ -20,12 +20,14 @@ import brave.propagation.TraceContext;
  * Use this to control the request data recorded for an {@link TraceContext#sampledLocal() sampled
  * RPC client or server span}.
  *
- * <p>Here's an example that only sets the span name, with no tags:
+ * <p>Here's an example that adds default tags, and if Apache Dubbo, Java arguments:
  * <pre>{@code
- * rpcTracing = rpcTracing.toBuilder()
+ * rpcTracing = rpcTracingBuilder
  *   .clientRequestParser((req, context, span) -> {
- *      String method = req.method();
- *      if (method != null) span.name(method);
+ *      RpcRequestParser.DEFAULT.parse(req, context, span);
+ *      if (req instanceof DubboRequest) {
+ *        tagArguments(((DubboRequest) req).invocation().getArguments());
+ *      }
  *   }).build();
  * }</pre>
  *
@@ -36,7 +38,7 @@ public interface RpcRequestParser {
   RpcRequestParser DEFAULT = new Default();
 
   /**
-   * Implement to choose what data from the rpc request are parsed into the span representing it.
+   * Implement to choose what data from the RPC request are parsed into the span representing it.
    *
    * @see Default
    */

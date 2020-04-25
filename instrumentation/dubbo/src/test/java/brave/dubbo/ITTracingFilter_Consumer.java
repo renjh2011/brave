@@ -14,9 +14,13 @@
 package brave.dubbo;
 
 import brave.Clock;
+import brave.SpanCustomizer;
+import brave.Tag;
 import brave.propagation.CurrentTraceContext.Scope;
 import brave.propagation.SamplingFlags;
 import brave.propagation.TraceContext;
+import brave.rpc.RpcResponse;
+import brave.rpc.RpcResponseParser;
 import brave.rpc.RpcRuleSampler;
 import brave.rpc.RpcTracing;
 import brave.test.util.AssertableCallback;
@@ -24,6 +28,7 @@ import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.rpc.Filter;
+import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 import org.junit.After;
@@ -261,6 +266,33 @@ public class ITTracingFilter_Consumer extends ITTracingFilter {
     Span span =
       reporter.takeRemoteSpanWithError(Span.Kind.CLIENT, ".*Not found exported service.*");
     assertThat(span.tags())
-      .containsEntry("dubbo.error_code", "NETWORK_EXCEPTION");
+      .containsEntry("dubbo.error_code", "1");
+  }
+
+  @Test public void customParser() {
+    Tag<DubboResponse> javaValue = new Tag<DubboResponse>("dubbo.result_value") {
+      @Override protected String parseValue(DubboResponse input, TraceContext context) {
+        Result result = input.result();
+        if (result == null) return null;
+        return String.valueOf(result.getValue());
+      }
+    };
+    RpcResponseParser customResponseParser = new RpcResponseParser() {
+      @Override public void parse(RpcResponse res, TraceContext context, SpanCustomizer span) {
+        RpcResponseParser.DEFAULT.parse(res, context, span);
+        if (res instanceof DubboResponse) {
+          javaValue.tag((DubboResponse) res, span);
+        }
+      }
+    };
+    rpcTracing = RpcTracing.newBuilder(tracing)
+      .clientResponseParser(customResponseParser)
+      .build();
+    init();
+
+    String javaResult = client.get().sayHello("jorge");
+
+    assertThat(reporter.takeRemoteSpan(Span.Kind.CLIENT).tags())
+      .containsEntry("dubbo.result_value", javaResult);
   }
 }

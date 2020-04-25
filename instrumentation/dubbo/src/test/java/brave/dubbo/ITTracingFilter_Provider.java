@@ -13,13 +13,18 @@
  */
 package brave.dubbo;
 
+import brave.SpanCustomizer;
+import brave.Tag;
 import brave.propagation.B3SingleFormat;
 import brave.propagation.SamplingFlags;
 import brave.propagation.TraceContext;
+import brave.rpc.RpcResponse;
+import brave.rpc.RpcResponseParser;
 import brave.rpc.RpcRuleSampler;
 import brave.rpc.RpcTracing;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -139,5 +144,32 @@ public class ITTracingFilter_Provider extends ITTracingFilter {
 
     assertThat(reporter.takeRemoteSpan(Span.Kind.SERVER).name()).endsWith("sayhello");
     // @After will also check that sayGoodbye was not sampled
+  }
+
+  @Test public void customParser() {
+    Tag<DubboResponse> javaValue = new Tag<DubboResponse>("dubbo.result_value") {
+      @Override protected String parseValue(DubboResponse input, TraceContext context) {
+        Result result = input.result();
+        if (result == null) return null;
+        return String.valueOf(result.getValue());
+      }
+    };
+    RpcResponseParser customResponseParser = new RpcResponseParser() {
+      @Override public void parse(RpcResponse res, TraceContext context, SpanCustomizer span) {
+        RpcResponseParser.DEFAULT.parse(res, context, span);
+        if (res instanceof DubboResponse) {
+          javaValue.tag((DubboResponse) res, span);
+        }
+      }
+    };
+    rpcTracing = RpcTracing.newBuilder(tracing)
+      .serverResponseParser(customResponseParser)
+      .build();
+    init();
+
+    String javaResult = client.get().sayHello("jorge");
+
+    assertThat(reporter.takeRemoteSpan(Span.Kind.SERVER).tags())
+      .containsEntry("dubbo.result_value", javaResult);
   }
 }

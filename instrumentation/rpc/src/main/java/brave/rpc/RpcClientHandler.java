@@ -22,7 +22,7 @@ import brave.propagation.TraceContext.Injector;
 import brave.sampler.SamplerFunction;
 
 /**
- * This standardizes a way to instrument rpc clients, particularly in a way that encourages use of
+ * This standardizes a way to instrument RPC clients, particularly in a way that encourages use of
  * portable customizations via {@link RpcRequestParser} and {@link RpcResponseParser}.
  *
  * <p>Synchronous interception is the most straight forward instrumentation.
@@ -32,7 +32,7 @@ import brave.sampler.SamplerFunction;
  *   <li>Start the span and add trace headers to the request</li>
  *   <li>Put the span in scope so things like log integration works</li>
  *   <li>Invoke the request</li>
- *   <li>Catch any errors</li>
+ *   <li>If there was a Throwable, add it to the span</li>
  *   <li>Complete the span</li>
  * </ol>
  *
@@ -47,10 +47,9 @@ import brave.sampler.SamplerFunction;
  *   error = e; // 4.
  *   throw e;
  * } finally {
- *   RpcClientResponseWrapper response = result != null
- *     ? new RpcClientResponseWrapper(wrapper, result, error)
- *     : null;
- *   handler.handleReceive(response, error, span); // 5.
+ *   RpcClientResponseWrapper response =
+ *     new RpcClientResponseWrapper(wrapper, result, error);
+ *   handler.handleReceive(response, span); // 5.
  * }
  * }</pre>
  *

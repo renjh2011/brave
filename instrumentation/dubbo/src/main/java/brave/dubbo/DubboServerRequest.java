@@ -19,8 +19,7 @@ import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 
-/** @since 5.12 */
-public final class DubboServerRequest extends RpcServerRequest {
+final class DubboServerRequest extends RpcServerRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
 
@@ -31,8 +30,12 @@ public final class DubboServerRequest extends RpcServerRequest {
     this.invocation = invocation;
   }
 
-  public Invoker<?> invoker() {
+  @Override public Invoker<?> invoker() {
     return invoker;
+  }
+
+  @Override public Invocation invocation() {
+    return invocation;
   }
 
   /** Returns the {@link Invocation}. */
@@ -55,7 +58,6 @@ public final class DubboServerRequest extends RpcServerRequest {
     return DubboParser.service(invocation);
   }
 
-  /** {@inheritDoc} */
   @Override public boolean parseRemoteIpAndPort(Span span) {
     return DubboParser.parseRemoteIpAndPort(span);
   }

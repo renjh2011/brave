@@ -1,11 +1,11 @@
 # brave-instrumentation-rpc
 
-Most instrumentation are based on rpc communication. For this reason,
-we have specialized handlers for rpc clients and servers. All of these
+Most instrumentation are based on RPC communication. For this reason,
+we have specialized handlers for RPC clients and servers. All of these
 are configured with `RpcTracing`.
 
 The `RpcTracing` class holds a reference to a tracing component,
-instructions on what to put into rpc spans, and sampling policy.
+instructions on what to put into RPC spans, and sampling policy.
 
 ## Span data policy
 By default, the following are added to both RPC client and server spans:
@@ -21,41 +21,25 @@ By default, the following are added to both RPC client and server spans:
 Naming and tags are configurable in a library-agnostic way. For example,
 the same `RpcTracing` component configures gRPC or Dubbo identically.
 
-For example, to add a non-default tag for RPC clients, you can do this:
+For example, to add a framework-specific tag for RPC clients, you can do this:
 
 ```java
-rpcTracing = rpcTracing.toBuilder()
-    .clientResponseParser((req, context, span) -> {
-      RpcClientResponseParser.DEFAULT.parse(req, context, span);
-      // Add "rpc.error_code" even though it will be the same as the "error" tag value
-      RpcTags.ERROR_CODE.tag(req, context, span);
-    })
-    .build();
+rpcTracing = rpcTracingBuilder
+  .clientRequestParser((req, context, span) -> {
+    RpcRequestParser.DEFAULT.parse(req, context, span);
+    if (req instanceof DubboRequest) {
+      tagArguments(((DubboRequest) req).invocation().getArguments());
+    }
+  }).build();
 
+// gRPC would silently ignore the DubboRequest parsing
 grpc = GrpcTracing.create(rpcTracing);
 dubbo = DubboTracing.create(rpcTracing);
 ```
 
-If you just want to control span naming policy based on the request,
-override `spanName` in your client or server parser.
-
-Ex:
-```java
-overrideSpanName = new RpcRequestParser.Default() {
-  @Override protected String spanName(RpcRequest req, TraceContext context) {
-    // If using Armeria, maybe we want to reuse the request log name
-    Object raw = req.unwrap();
-    if (raw instanceof ServiceRequestContext) {
-      RequestLog requestLog = ((ServiceRequestContext) raw).log();
-      return requestLog.name();
-    }
-    return super.spanName(req, context); // otherwise, go with the defaults
-  }
-};
-```
-
-Note that span name can be overwritten any time, for example, when
-parsing the response.
+*Note*: Data including the span name can be overwritten any time. For example,
+if you don't know a good span name until the response, it is fine to replace it
+then.
 
 ## Sampling Policy
 The default sampling policy is to use the default (trace ID) sampler for
@@ -101,7 +85,7 @@ covers topics including propagation. You may find our [feature tests](src/test/j
 
 ## Rpc Client
 
-The first step in developing rpc client instrumentation is implementing
+The first step in developing RPC client instrumentation is implementing
 `RpcClientRequest` and `RpcClientResponse` for your native library.
 This ensures users can portably control tags using `RpcClientParser`.
 
@@ -125,7 +109,7 @@ You generally need to...
 1. Start the span and add trace headers to the request
 2. Put the span in scope so things like log integration works
 3. Invoke the request
-4. Catch any errors
+4. If there was a Throwable, add it to the span
 5. Complete the span
 
 ```java
@@ -139,10 +123,9 @@ try (Scope ws = currentTraceContext.newScope(span.context())) { // 2.
   error = e; // 4.
   throw e;
 } finally {
-  RpcClientResponseWrapper response = result != null
-    ? new RpcClientResponseWrapper(wrapper, result, error)
-    : null;
-  handler.handleReceive(response, error, span); // 5.
+  RpcClientResponseWrapper response =
+    ? new RpcClientResponseWrapper(wrapper, result, error);
+  handler.handleReceive(response, span); // 5.
 }
 ```
 
@@ -173,7 +156,7 @@ public void onStart(RpcContext context, RpcClientRequest req) {
 
 ## Rpc Server
 
-The first step in developing rpc server instrumentation is implementing
+The first step in developing RPC server instrumentation is implementing
 `brave.RpcServerRequest` and `brave.RpcServerResponse` for your native
 library. This ensures your instrumentation can extract headers, sample and
 control tags.
@@ -196,7 +179,7 @@ You generally need to...
 1. Extract any trace IDs from headers and start the span
 2. Put the span in scope so things like log integration works
 3. Process the request
-4. Catch any errors
+4. If there was a Throwable, add it to the span
 5. Complete the span
 
 ```java
@@ -210,9 +193,8 @@ try (Scope ws = currentTraceContext.newScope(span.context())) { // 2.
   error = e; // 4.
   throw e;
 } finally {
-  RpcServerResponseWrapper response = result != null
-    ? new RpcServerResponseWrapper(wrapper, result, error)
-    : null;
-  handler.handleSend(response, error, span); // 5.
+  RpcServerResponseWrapper response =
+    new RpcServerResponseWrapper(wrapper, result, error);
+  handler.handleSend(response, span); // 5.
 }
 ```

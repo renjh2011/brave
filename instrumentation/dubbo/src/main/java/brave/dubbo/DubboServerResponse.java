@@ -19,7 +19,7 @@ import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcException;
 
 /** @since 5.12 */
-public final class DubboServerResponse extends RpcServerResponse {
+final class DubboServerResponse extends RpcServerResponse implements DubboResponse {
   final DubboServerRequest request;
   @Nullable final Result result;
   @Nullable final Throwable error;
@@ -31,17 +31,19 @@ public final class DubboServerResponse extends RpcServerResponse {
     this.error = error;
   }
 
+  @Override public Result result() {
+    return result;
+  }
+
   /** Returns the {@link Result}. */
   @Override public Result unwrap() {
     return result;
   }
 
-  /** {@inheritDoc} */
   @Override public DubboServerRequest request() {
     return request;
   }
 
-  /** {@inheritDoc} */
   @Override public Throwable error() {
     return error;
   }

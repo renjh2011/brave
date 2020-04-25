@@ -120,17 +120,77 @@ future change will allow parsing into a span name from the same type. In other
 words, `RpcRequest` is an intermediate model that must evaluate properties
 before a span exists.
 
-## Why "rpc.error_code"?
+## Why does `RpcHandler.handleFinish` have no error parameter?
+In the HTTP abstraction, finish hooks had two parameters: one for the response
+and one for an error. In practice, "http.status_code" sometimes ends up in an
+exception, and parsers usually don't look at exception subtypes. The same thing
+happens in RPC. For example, Dubbo's `RpcException` includes the error code.
 
-## Why not "rpc.error_message"?
-A long form error message is unlikely to be portable due to lack of frameworks defining more than
-even an error bit in their RPC message types. Moreover, long form messages usually materialize as
-exception messages, which are handled directly by `MutableSpan.error()`.
+Since `RpcResponse.error()` exists anyway, it is better to be consistent than
+have those writing parsers have to pin to framework specific code in order to
+know an error code.
 
-For example, users today trace SOAP services which underneath have "faultcode" and "faultstring".
-The "faultcode" becomes the "rpc.error_code", and the "faultstring" is very likely to be a raised
-exception message. If a user desires to also tag that in a SOAP specific way, they can use an
-`RpcResponseParser`.
+## The "rpc.error_code" tag
+RPC frameworks are not consistent in response status. There's often no success
+code, and in minimal cases only an error bit. As one-way RPC implies no success
+response will return, representing success is not portable.
+
+Even in the case of errors, we could choose between a code and a message. For
+example, we have people tracing SOAP services "faultcode" and "faultstring" are
+both strings.
+
+An error code is more likely to be fixed cardinality as messages often include
+variables. In other words, we choose error code as it is more supported, and it
+supports search and aggregation.
+
+### Why do we tag "rpc.error_code" -> "" as opposed to true?
+The edge case of only knowing an RPC error exists (bit) is handled the same as
+the "error" tag: set "rpc.error_code" to empty string (""). This allows search
+and aggregation on the tag key "rpc.error_code" to operate, and without leading
+users towards accidentally tagging "rpc.error_code" = "false".
+
+See [the core rationale](../brave/RATIONALE.md) for more about the empty string
+case.
+
+### Why do we prefer "rpc.error_code" as a word and not a number?
+In the case of errors, code is usually a string not a number. Even when it is a
+number, you can often find that number is a string ordinal, as opposed to a
+meaningful number like HTTP status codes.
+
+HTTP status codes are grouped by classification, and have existed so long that
+support teams can usually identify meaning by looking at a number like 401.
+Being triple digits, it is relatively easy to search for what an HTTP status
+means.
+
+RPC error code numbers are usually like enum ordinals. In other words, the
+number has no significance (no grouping), which makes this not ideal for
+troubleshooting.
+
+Let's take the example of Dubbo's error code number 2 vs its name
+"TIMEOUT_EXCEPTION". There is no generic documentation on Dubbo errors. If
+given only the number 2, a user unfamiliar with how Dubbo works internally will
+have a hard time. For example, searching Dubbo's code base for "2" will return
+less relevant results than searching for "TIMEOUT_EXCEPTION". More importantly,
+if we return "TIMEOUT_EXCEPTION", it is possible a user will not even have to
+look to see if there is documentation or not!
+
+For all these reasons, we prefer code names, not numbers.
+
+### Why not "rpc.error_message"?
+A long form error message is unlikely to be portable due to lack of frameworks
+defining more than even an error bit in their RPC message types.
+
+When they exist, error messages can have nice attributes. For example, they can
+include variables and can be localized. However, it is these same traits that
+make them less useful in search and aggregation.
+
+Moreover, long form messages usually materialize as exception messages, which
+are handled directly by `MutableSpan.error()`. For example, SOAP has a
+"faultcode" and "faultstring". The "faultcode" becomes the "rpc.error_code".
+The "faultstring" may still be added to the span if it is exception message.
+
+Regardless, if there is a framework that has an error message that isn't in the
+exception, they can tag it directly with `RpcResponseParser`.
 
 ### Why not re-use OpenTelemetry "status"
 OpenTelemetry chose to re-use gRPC status codes as a generic "status" type.

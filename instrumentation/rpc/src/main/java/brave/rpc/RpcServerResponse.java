@@ -16,8 +16,8 @@ package brave.rpc;
 import brave.Span;
 
 /**
- * Marks an interface for use in {@link RpcServerHandler#handleSend(RpcServerResponse, Throwable,
- * Span)}. This gives a standard type to consider when parsing an incoming context.
+ * Marks an interface for use in {@link RpcServerHandler#handleSend(RpcServerResponse, Span)}. This
+ * gives a standard type to consider when parsing an incoming context.
  *
  * @see RpcClientRequest
  * @since 5.10

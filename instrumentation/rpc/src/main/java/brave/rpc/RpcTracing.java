@@ -46,10 +46,9 @@ public class RpcTracing implements Closeable {
     return tracing;
   }
 
-
   /**
-   * Used by {@link RpcClientHandler#handleSend(RpcClientRequest)} to add a span name and tags
-   * about the request before it is sent to the server.
+   * Used by {@link RpcClientHandler#handleSend(RpcClientRequest)} to add a span name and tags about
+   * the request before it is sent to the server.
    *
    * @since 5.12
    */
@@ -58,7 +57,7 @@ public class RpcTracing implements Closeable {
   }
 
   /**
-   * Used by {@link RpcClientHandler#handleReceive(Object, Throwable, Span)} to add tags about the
+   * Used by {@link RpcClientHandler#handleReceive(RpcClientResponse, Span)} to add tags about the
    * response received from the server.
    *
    * @since 5.12
@@ -78,7 +77,7 @@ public class RpcTracing implements Closeable {
   }
 
   /**
-   * Used by {@link RpcServerHandler#handleSend(Object, Throwable, Span)} to add tags about the
+   * Used by {@link RpcServerHandler#handleSend(RpcServerResponse, Span)}  to add tags about the
    * response sent to the client.
    *
    * @since 5.12
@@ -92,7 +91,7 @@ public class RpcTracing implements Closeable {
    * the {@link SamplerFunctions#deferDecision() trace ID instead}.
    *
    * <p>This decision happens when a trace was not yet started in process. For example, you may be
-   * making an rpc request as a part of booting your application. You may want to opt-out of tracing
+   * making an RPC request as a part of booting your application. You may want to opt-out of tracing
    * client requests that did not originate from a server request.
    *
    * @see SamplerFunctions
