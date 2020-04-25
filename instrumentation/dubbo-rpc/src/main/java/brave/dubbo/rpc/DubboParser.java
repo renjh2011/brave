@@ -33,7 +33,7 @@ final class DubboParser {
    */
   static @Nullable String method(Invocation invocation) {
     String methodName = invocation.getMethodName();
-    if ("$invoke" .equals(methodName)) {
+    if ("$invoke".equals(methodName)) {
       Object[] arguments = invocation.getArguments();
       if (arguments != null && arguments.length > 0 && arguments[0] instanceof String) {
         methodName = (String) arguments[0];
