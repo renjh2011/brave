@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package brave.http;
+package brave.rpc;
 
 import brave.propagation.Propagation.Setter;
 import brave.test.propagation.PropagationSetterTest;
@@ -19,13 +19,13 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static brave.http.HttpClientRequest.SETTER;
+import static brave.rpc.RpcClientRequest.SETTER;
 
-public class HttpClientRequestSetterTest extends PropagationSetterTest<HttpClientRequest> {
-  Map<String, String> headers = new LinkedHashMap<>();
+public class RpcClientRequestSetterTest extends PropagationSetterTest<RpcClientRequest> {
+  Map<String, String> propagationFields = new LinkedHashMap<>();
 
-  @Override protected HttpClientRequest request() {
-    return new HttpClientRequest() {
+  @Override protected RpcClientRequest request() {
+    return new RpcClientRequest() {
       @Override public Object unwrap() {
         return null;
       }
@@ -34,30 +34,22 @@ public class HttpClientRequestSetterTest extends PropagationSetterTest<HttpClien
         return null;
       }
 
-      @Override public String path() {
+      @Override public String service() {
         return null;
       }
 
-      @Override public String url() {
-        return null;
-      }
-
-      @Override public String header(String name) {
-        return headers.get(name);
-      }
-
-      @Override public void header(String name, String value) {
-        headers.put(name, value);
+      @Override protected void propagationField(String keyName, String value) {
+        propagationFields.put(keyName, value);
       }
     };
   }
 
-  @Override protected Setter<HttpClientRequest, String> setter() {
+  @Override protected Setter<RpcClientRequest, String> setter() {
     return SETTER;
   }
 
-  @Override protected Iterable<String> read(HttpClientRequest request, String key) {
-    String result = headers.get(key);
+  @Override protected Iterable<String> read(RpcClientRequest request, String key) {
+    String result = propagationFields.get(key);
     return result != null ? Collections.singletonList(result) : Collections.emptyList();
   }
 }

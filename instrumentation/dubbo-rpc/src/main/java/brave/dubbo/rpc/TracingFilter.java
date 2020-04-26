@@ -39,6 +39,7 @@ import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 import static brave.internal.Throwables.propagateIfFatal;
@@ -110,7 +111,12 @@ public final class TracingFilter implements Filter {
     Span span;
     DubboRequest request;
     if (kind.equals(Kind.CLIENT)) {
-      DubboClientRequest clientRequest = new DubboClientRequest(invoker, invocation);
+      // When A service invoke B service, then B service then invoke C service, the parentId of the
+      // C service span is A when read from invocation.getAttachments(). This is because
+      // AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
+      // See com.alibaba.dubbo.rpc.protocol.AbstractInvoker(line 138) from v2.6.7
+      Map<String, String> attachments = RpcContext.getContext().getAttachments();
+      DubboClientRequest clientRequest = new DubboClientRequest(invoker, invocation, attachments);
       request = clientRequest;
       span = clientHandler.handleSendWithParent(clientRequest, invocationContext);
     } else {

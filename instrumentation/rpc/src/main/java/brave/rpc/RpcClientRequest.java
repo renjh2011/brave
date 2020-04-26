@@ -16,6 +16,7 @@ package brave.rpc;
 import brave.Span;
 import brave.baggage.BaggagePropagation;
 import brave.propagation.Propagation;
+import brave.propagation.Propagation.Setter;
 import brave.propagation.TraceContext;
 import brave.propagation.TraceContext.Injector;
 
@@ -27,8 +28,7 @@ import brave.propagation.TraceContext.Injector;
  * @since 5.8
  */
 public abstract class RpcClientRequest extends RpcRequest {
-  static final Propagation.Setter<RpcClientRequest, String>
-    SETTER = new Propagation.Setter<RpcClientRequest, String>() {
+  static final Setter<RpcClientRequest, String> SETTER = new Setter<RpcClientRequest, String>() {
     @Override public void put(RpcClientRequest request, String key, String value) {
       request.propagationField(key, value);
     }
@@ -53,8 +53,8 @@ public abstract class RpcClientRequest extends RpcRequest {
    * <p>Header based requests will use headers, but this could set RPC
    * envelopes or even binary data.
    *
-   * @param keyName key used for {@link Propagation.Setter#put}
-   * @param value value used for {@link Propagation.Setter#put}
+   * @param keyName key used for {@link Setter#put}
+   * @param value value used for {@link Setter#put}
    * @see #SETTER
    * @see Propagation#keys()
    * @see BaggagePropagation#allKeyNames(Propagation)

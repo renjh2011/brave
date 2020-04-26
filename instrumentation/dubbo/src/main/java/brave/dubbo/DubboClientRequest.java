@@ -19,23 +19,18 @@ import java.util.Map;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
-import org.apache.dubbo.rpc.RpcContext;
 
 final class DubboClientRequest extends RpcClientRequest implements DubboRequest {
   final Invoker<?> invoker;
   final Invocation invocation;
   final Map<String, String> attachments;
 
-  DubboClientRequest(Invoker<?> invoker, Invocation invocation) {
+  DubboClientRequest(Invoker<?> invoker, Invocation invocation, Map<String, String> attachments) {
     if (invoker == null) throw new NullPointerException("invoker == null");
     if (invocation == null) throw new NullPointerException("invocation == null");
     this.invoker = invoker;
     this.invocation = invocation;
-    // When A service invoke B service, then B service then invoke C service, the parentId of the
-    // C service span is A when read from invocation.getAttachments(). This is because
-    // AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
-    // See org.apache.dubbo.rpc.protocol.AbstractInvoker(line 141) from v2.7.3
-    this.attachments = RpcContext.getContext().getAttachments();
+    this.attachments = attachments;
   }
 
   @Override public Invoker<?> invoker() {

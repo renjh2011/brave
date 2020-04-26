@@ -27,6 +27,7 @@ import brave.rpc.RpcResponse;
 import brave.rpc.RpcResponseParser;
 import brave.rpc.RpcServerHandler;
 import brave.rpc.RpcTracing;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import org.apache.dubbo.common.constants.CommonConstants;
@@ -110,7 +111,12 @@ public final class TracingFilter implements Filter {
     Span span;
     DubboRequest request;
     if (kind.equals(Kind.CLIENT)) {
-      DubboClientRequest clientRequest = new DubboClientRequest(invoker, invocation);
+      // When A service invoke B service, then B service then invoke C service, the parentId of the
+      // C service span is A when read from invocation.getAttachments(). This is because
+      // AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
+      // See org.apache.dubbo.rpc.protocol.AbstractInvoker(line 141) from v2.7.3
+      Map<String, String> attachments = RpcContext.getContext().getAttachments();
+      DubboClientRequest clientRequest = new DubboClientRequest(invoker, invocation, attachments);
       request = clientRequest;
       span = clientHandler.handleSendWithParent(clientRequest, invocationContext);
     } else {

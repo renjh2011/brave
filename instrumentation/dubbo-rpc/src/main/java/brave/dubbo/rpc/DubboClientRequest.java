@@ -18,7 +18,6 @@ import brave.rpc.RpcClientRequest;
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
-import com.alibaba.dubbo.rpc.RpcContext;
 import java.util.Map;
 
 final class DubboClientRequest extends RpcClientRequest implements DubboRequest {
@@ -26,16 +25,13 @@ final class DubboClientRequest extends RpcClientRequest implements DubboRequest 
   final Invocation invocation;
   final Map<String, String> attachments;
 
-  DubboClientRequest(Invoker<?> invoker, Invocation invocation) {
+  DubboClientRequest(Invoker<?> invoker, Invocation invocation, Map<String, String> attachments) {
     if (invoker == null) throw new NullPointerException("invoker == null");
     if (invocation == null) throw new NullPointerException("invocation == null");
+    if (attachments == null) throw new NullPointerException("attachments == null");
     this.invoker = invoker;
     this.invocation = invocation;
-    // When A service invoke B service, then B service then invoke C service, the parentId of the
-    // C service span is A when read from invocation.getAttachments(). This is because
-    // AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
-    // See com.alibaba.dubbo.rpc.protocol.AbstractInvoker(line 138) from v2.6.7
-    this.attachments = RpcContext.getContext().getAttachments();
+    this.attachments = attachments;
   }
 
   @Override public Invoker<?> invoker() {
