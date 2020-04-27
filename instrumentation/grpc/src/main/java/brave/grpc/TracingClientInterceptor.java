@@ -208,7 +208,7 @@ final class TracingClientInterceptor implements ClientInterceptor {
         throw e;
       } finally {
         GrpcClientResponse response = new GrpcClientResponse(request, status, trailers, error);
-        finish(response, spanRef.get());
+        finish(response, spanRef.getAndSet(null));
       }
     }
   }

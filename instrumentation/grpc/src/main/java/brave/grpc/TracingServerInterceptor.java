@@ -156,7 +156,7 @@ final class TracingServerInterceptor implements ServerInterceptor {
         throw e;
       } finally {
         GrpcServerResponse response = new GrpcServerResponse(request, status, trailers, error);
-        finish(response, spanRef.get());
+        finish(response, spanRef.getAndSet(null));
       }
     }
   }
