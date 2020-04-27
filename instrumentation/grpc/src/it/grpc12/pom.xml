@@ -48,6 +48,11 @@
       <version>@junit.version@</version>
     </dependency>
     <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>@mockito.version@</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>brave-tests</artifactId>
       <version>${project.version}</version>
